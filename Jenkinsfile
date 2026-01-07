@@ -3,17 +3,26 @@ pipeline {
 
     stages {
 
-        stage('Install Docker') {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Bootstrap Docker (First Run Only)') {
             steps {
                 sh '''
-                if ! command -v docker &> /dev/null
-                then
-                    sudo dnf install docker -y
-                    sudo systemctl start docker
+                if ! command -v docker >/dev/null 2>&1; then
+                    echo "Docker not found. Installing Docker..."
+                    sudo dnf install -y docker
+                    sudo systemctl daemon-reexec
                     sudo systemctl enable docker
+                    sudo systemctl start docker
                     sudo usermod -aG docker jenkins
+                    echo "Docker installed. PLEASE RE-RUN THE JOB."
+                    exit 2
                 else
-                    echo "Docker already installed"
+                    echo "Docker already installed. Skipping bootstrap."
                 fi
                 '''
             }
